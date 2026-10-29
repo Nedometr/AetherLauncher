@@ -148,6 +148,14 @@ public class SearchModFragment extends Fragment implements ModItemAdapter.Search
             TextView mSelectedVersion = dialog.findViewById(R.id.search_mod_selected_mc_version_textview);
             Button mSelectVersionButton = dialog.findViewById(R.id.search_mod_mc_version_button);
             Button mApplyButton = dialog.findViewById(R.id.search_mod_apply_filters);
+            android.widget.RadioGroup typeGroup = dialog.findViewById(R.id.search_mod_type_group);
+            assert typeGroup != null;
+            switch (mSearchFilters.projectType) {
+                case "mod": typeGroup.check(R.id.search_type_mod); break;
+                case "resourcepack": typeGroup.check(R.id.search_type_resourcepack); break;
+                case "shader": typeGroup.check(R.id.search_type_shader); break;
+                default: typeGroup.check(R.id.search_type_modpack); break;
+            }
 
             assert mSelectVersionButton != null;
             assert mSelectedVersion != null;
@@ -162,6 +170,12 @@ public class SearchModFragment extends Fragment implements ModItemAdapter.Search
             // Apply the new settings
             mApplyButton.setOnClickListener(v -> {
                 mSearchFilters.mcVersion = mSelectedVersion.getText().toString();
+                int checkedType = typeGroup.getCheckedRadioButtonId();
+                if(checkedType == R.id.search_type_mod) mSearchFilters.projectType = "mod";
+                else if(checkedType == R.id.search_type_resourcepack) mSearchFilters.projectType = "resourcepack";
+                else if(checkedType == R.id.search_type_shader) mSearchFilters.projectType = "shader";
+                else mSearchFilters.projectType = "modpack";
+                mSearchFilters.isModpack = mSearchFilters.projectType.equals("modpack");
                 searchMods(mSearchEditText.getText().toString());
                 dialogInterface.dismiss();
             });

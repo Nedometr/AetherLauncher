@@ -13,7 +13,9 @@ import net.kdt.pojavlaunch.modloaders.modpacks.models.ModrinthIndex;
 import net.kdt.pojavlaunch.modloaders.modpacks.models.SearchFilters;
 import net.kdt.pojavlaunch.modloaders.modpacks.models.SearchResult;
 import net.kdt.pojavlaunch.progresskeeper.DownloaderProgressWrapper;
+import net.kdt.pojavlaunch.utils.DownloadUtils;
 import net.kdt.pojavlaunch.utils.ZipUtils;
+import net.kdt.pojavlaunch.value.launcherprofiles.LauncherProfiles;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,7 +47,7 @@ public class ModrinthApi implements ModpackApi{
         HashMap<String, Object> params = new HashMap<>();
         StringBuilder facetString = new StringBuilder();
         facetString.append("[");
-        facetString.append(String.format("[\"project_type:%s\"]", searchFilters.isModpack ? "modpack" : "mod"));
+        facetString.append(String.format("[\"project_type:%s\"]", searchFilters.projectType));
         if(searchFilters.mcVersion != null && !searchFilters.mcVersion.isEmpty())
             facetString.append(String.format(",[\"versions:%s\"]", searchFilters.mcVersion));
         facetString.append("]");
@@ -70,8 +72,9 @@ public class ModrinthApi implements ModpackApi{
                     hit.get("project_id").getAsString(),
                     hit.get("title").getAsString(),
                     hit.get("description").getAsString(),
-                    hit.get("icon_url").getAsString()
+                    hit.get("icon_url").isJsonNull() ? null : hit.get("icon_url").getAsString()
             );
+            items[i].projectType = hit.get("project_type").getAsString();
         }
         if(modrinthSearchResult == null) modrinthSearchResult = new ModrinthSearchResult();
         modrinthSearchResult.previousOffset += responseHits.size();
@@ -112,8 +115,40 @@ public class ModrinthApi implements ModpackApi{
 
     @Override
     public ModLoader installMod(ModDetail modDetail, int selectedVersion) throws IOException{
-        //TODO considering only modpacks for now
+        if(!modDetail.isModpack) {
+            installSingleFile(modDetail, selectedVersion);
+            return null;
+        }
         return ModpackInstaller.installModpack(modDetail, selectedVersion, this::installMrpack);
+    }
+
+    /** Download a mod, resource pack or shader pack into the currently selected profile's game folder */
+    private void installSingleFile(ModDetail modDetail, int selectedVersion) throws IOException {
+        String folderName;
+        switch (modDetail.projectType) {
+            case "resourcepack": folderName = "resourcepacks"; break;
+            case "shader": folderName = "shaderpacks"; break;
+            default: folderName = "mods"; break;
+        }
+        String url = modDetail.versionUrls[selectedVersion];
+        String hash = modDetail.versionHashes[selectedVersion];
+        String fileName = java.net.URLDecoder.decode(url.substring(url.lastIndexOf('/') + 1), "UTF-8")
+                .replaceAll("[\\\\/:*?\"<>|\\t\\n]", "_");
+
+        File destDir = new File(Tools.getGameDirPath(LauncherProfiles.getCurrentProfile()), folderName);
+        if(!destDir.isDirectory() && !destDir.mkdirs()) throw new IOException("Failed to create " + destDir);
+        File destFile = new File(destDir, fileName);
+        try {
+            byte[] buffer = new byte[8192];
+            DownloadUtils.ensureSha1(destFile, hash, (java.util.concurrent.Callable<Void>) () -> {
+                DownloadUtils.downloadFileMonitored(url, destFile, buffer,
+                        new DownloaderProgressWrapper(R.string.modpack_download_downloading_mods,
+                                ProgressLayout.INSTALL_MODPACK));
+                return null;
+            });
+        } finally {
+            ProgressLayout.clearProgress(ProgressLayout.INSTALL_MODPACK);
+        }
     }
 
     private static ModLoader createInfo(ModrinthIndex modrinthIndex) {

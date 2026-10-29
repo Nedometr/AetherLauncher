@@ -29,7 +29,7 @@ public class CommonApi implements ModpackApi {
     public CommonApi(String curseforgeApiKey) {
         mCurseforgeApi = new CurseforgeApi(curseforgeApiKey);
         mModrinthApi = new ModrinthApi();
-        mModpackApis = new ModpackApi[]{mModrinthApi, mCurseforgeApi};
+        mModpackApis = new ModpackApi[]{mModrinthApi}; // Aether: Modrinth only
     }
 
     @Override

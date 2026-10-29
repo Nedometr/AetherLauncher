@@ -9,13 +9,28 @@
     android:paddingTop="@dimen/padding_heavy"
     >
 
+    <!-- Content type -->
+    <RadioGroup
+        android:id="@+id/search_mod_type_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="@dimen/padding_large"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <RadioButton android:id="@+id/search_type_modpack" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/aether_type_modpack" />
+        <RadioButton android:id="@+id/search_type_mod" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/aether_type_mod" />
+        <RadioButton android:id="@+id/search_type_resourcepack" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/aether_type_resourcepack" />
+        <RadioButton android:id="@+id/search_type_shader" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/aether_type_shader" />
+    </RadioGroup>
+
     <!-- Version filter -->
     <TextView
         android:id="@+id/search_mod_mc_version_textview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/profiles_profile_version"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/search_mod_type_group"
 
         app:layout_constraintStart_toStartOf="@+id/search_mod_selected_mc_version_textview" />
 
