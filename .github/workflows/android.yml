@@ -34,35 +34,27 @@ jobs:
           cd app_pojavlauncher/libs
           wget https://github.com/PojavLauncherTeam/LTW/releases/latest/download/ltw-release.aar
 
-      - name: Get JRE 8
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: app_pojavlauncher/src/main/assets/components/jre
-          workflow_conclusion: success
-          repo: PojavLauncherTeam/android-openjdk-build-multiarch
-          branch: buildjre8
-          name: jre8-pojav
-
-      - name: Get JRE17
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: app_pojavlauncher/src/main/assets/components/jre-new
-          workflow_conclusion: success
-          repo: PojavLauncherTeam/android-openjdk-build-multiarch
-          branch: buildjre17-21
-          name: jre17-pojav
-
-      - name: Get JRE21
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          workflow: build.yml
-          path: app_pojavlauncher/src/main/assets/components/jre-21
-          workflow_conclusion: success
-          repo: PojavLauncherTeam/android-openjdk-build-multiarch
-          branch: buildjre17-21
-          name: jre21-pojav
+      - name: Get JRE runtimes from the last official PojavLauncher release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir dl rt
+          gh release download --repo PojavLauncherTeam/PojavLauncher --pattern '*.apk' --dir dl
+          ls -la dl
+          # The biggest APK is the one that ships with the runtimes
+          APK=$(ls -S dl/*.apk | head -n1)
+          echo "Using $APK"
+          unzip -q "$APK" 'assets/components/*' -d rt
+          mkdir -p app_pojavlauncher/src/main/assets/components
+          found=0
+          for d in jre jre-new jre-21; do
+            if [ -d "rt/assets/components/$d" ]; then
+              cp -r "rt/assets/components/$d" app_pojavlauncher/src/main/assets/components/
+              found=$((found+1))
+            fi
+          done
+          ls app_pojavlauncher/src/main/assets/components
+          [ "$found" -gt 0 ] || { echo "No JRE found in the release APK"; exit 1; }
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -96,9 +88,9 @@ jobs:
 
       - name: Build APK without runtime
         run: |
-          rm -r app_pojavlauncher/src/main/assets/components/jre
-          rm -r app_pojavlauncher/src/main/assets/components/jre-new
-          rm -r app_pojavlauncher/src/main/assets/components/jre-21
+          rm -rf app_pojavlauncher/src/main/assets/components/jre
+          rm -rf app_pojavlauncher/src/main/assets/components/jre-new
+          rm -rf app_pojavlauncher/src/main/assets/components/jre-21
           gradle assembleDebug
           mv app_pojavlauncher/build/outputs/apk/debug/app_pojavlauncher-debug.apk out/app-debug-noruntime.apk
       - name: Gen md5sums
